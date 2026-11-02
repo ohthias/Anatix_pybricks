@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatix Pybricks</title>
+<style>
+:root {
+  --bg: #f4f5f2; --panel: #ffffff; --ink: #16181a; --muted: #6b7075; --line: #e2e4e0;
+  --accent: #d9480f; --ok: #2b8a3e; --warn: #e67700; --bad: #c92a2a;
+  --s1: #d9480f; --s2: #1971c2; --s3: #2b8a3e; --s4: #862e9c;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111315; --panel: #191c1f; --ink: #e9ecef; --muted: #8b9298; --line: #2a2e33;
+    --accent: #ff6b2c; --ok: #51cf66; --warn: #fcc419; --bad: #ff6b6b;
+    --s1: #ff6b2c; --s2: #4dabf7; --s3: #51cf66; --s4: #cc5de8;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--sans); }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 20px;
+  border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+.brand { font-weight: 800; letter-spacing: .04em; font-size: 15px; margin-right: 8px; }
+.brand span { color: var(--accent); }
+button, select { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--ink); }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.group { display: flex; gap: 6px; align-items: center; }
+.spacer { flex: 1; }
+.pill { font: 600 12px var(--mono); padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); }
+.pill.on { color: var(--ok); border-color: var(--ok); }
+.pill.wait { color: var(--warn); border-color: var(--warn); }
+main { padding: 16px 20px 40px; display: grid; gap: 14px;
+  grid-template-columns: repeat(12, 1fr); max-width: 1500px; margin: 0 auto; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 10px; font-weight: 700; }
+.c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; }
+.c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+@media (max-width: 1000px) { .c3, .c4, .c5, .c7, .c8 { grid-column: span 12; } }
+.info { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; }
+.info dt { color: var(--muted); } .info dd { margin: 0; font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; }
+.big { font: 700 34px/1 var(--mono); }
+.big small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px; margin-top: 10px; font-size: 12px; }
+.kpis b { display: block; font: 600 15px var(--mono); }
+.kpis span { color: var(--muted); }
+canvas { display: block; width: 100%; }
+#chart { height: 280px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; margin-bottom: 8px; min-height: 18px; }
+.legend i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.toolbar h2 { margin: 0; }
+#metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.metric { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; user-select: none; }
+.metric.sel { border-color: var(--c, var(--accent)); box-shadow: inset 3px 0 0 var(--c, var(--accent)); }
+.metric .n { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric .v { font: 600 18px var(--mono); }
+.metric canvas { height: 28px; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 4px 6px; }
+td { padding: 5px 6px; border-top: 1px solid var(--line); font-family: var(--mono); }
+td.r, th.r { text-align: right; }
+.bar { height: 4px; background: var(--line); border-radius: 2px; margin-top: 3px; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.list { max-height: 260px; overflow: auto; font: 12.5px/1.6 var(--mono); }
+.list div { border-top: 1px solid var(--line); padding: 3px 0; display: flex; gap: 10px; }
+.list div:first-child { border-top: 0; }
+.t { color: var(--muted); min-width: 64px; }
+.state { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.state:first-child { border-top: 0; }
+.state b { font-family: var(--mono); color: var(--accent); }
+#console { height: 220px; overflow: auto; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-all; }
+#console .anx { color: var(--accent); }
+#console .sys { color: var(--muted); font-style: italic; }
+.send { display: flex; gap: 6px; margin-top: 8px; }
+.send input { flex: 1; font: 13px var(--mono); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+#warn { display: none; grid-column: span 12; background: var(--panel); border: 1px solid var(--warn); border-radius: 12px; padding: 12px 16px; }
+@media (max-width: 600px) { header, main { padding-left: 16px; padding-right: 16px; } header { position: static; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">ANATIX <span>·</span> PYBRICKS</div>
+  <div class="group">
+    <button id="bBle" class="primary">Bluetooth</button>
+    <button id="bUsb">Cabo USB</button>
+    <button id="bOff" disabled>Desconectar</button>
+  </div>
+  <div class="group">
+    <button id="bRun" disabled title="Iniciar o programa salvo no hub">▶ Iniciar</button>
+    <button id="bStop" disabled title="Parar o programa">■ Parar</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="group">
+    <select id="rate" title="Período dos relatórios de loop e tempos">
+      <option value="100">relatórios 100 ms</option>
+      <option value="250" selected>relatórios 250 ms</option>
+      <option value="500">relatórios 500 ms</option>
+      <option value="1000">relatórios 1 s</option>
+    </select>
+    <button id="bReset" disabled>Zerar</button>
+    <button id="bCsv">CSV</button>
+  </div>
+  <span id="status" class="pill">desconectado</span>
+</header>
+
+<main>
+  <div id="warn"></div>
+
+  <section class="card c3">
+    <h2>Robô</h2>
+    <dl class="info">
+      <dt>Hub</dt><dd id="iHub">—</dd>
+      <dt>Conexão</dt><dd id="iConn">—</dd>
+      <dt>Firmware</dt><dd id="iFw">—</dd>
+      <dt>Programa</dt><dd id="iProg">—</dd>
+      <dt>Robô</dt><dd id="iRobo">—</dd>
+      <dt>Placa</dt><dd id="iPlaca">—</dd>
+      <dt>Frames</dt><dd id="iFrames">0</dd>
+    </dl>
+  </section>
+
+  <section class="card c3">
+    <h2>Loop</h2>
+    <div class="big" id="lHz">—<small>loops/s</small></div>
+    <canvas id="lSpark" style="height:36px;margin-top:8px"></canvas>
+    <div class="kpis">
+      <div><span>tempo médio</span><b id="lAvg">—</b></div>
+      <div><span>pior tempo</span><b id="lMax">—</b></div>
+      <div><span>RAM livre</span><b id="lRam">—</b></div>
+      <div><span>descartes</span><b id="lDrops">—</b></div>
+    </div>
+  </section>
+
+  <section class="card c3">
+    <h2>Estados</h2>
+    <div id="states"><div class="empty">Nenhum estado ainda.</div></div>
+  </section>
+
+  <section class="card c3">
+    <h2>Eventos</h2>
+    <div class="list" id="events" style="max-height:170px"><div class="empty">Nenhum evento ainda.</div></div>
+  </section>
+
+  <section class="card c8">
+    <div class="toolbar">
+      <h2>Gráfico</h2>
+      <div class="group">
+        <select id="win">
+          <option value="10000">10 s</option>
+          <option value="30000" selected>30 s</option>
+          <option value="60000">60 s</option>
+          <option value="120000">2 min</option>
+        </select>
+        <button id="bPause">Pausar</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <canvas id="chart"></canvas>
+  </section>
+
+  <section class="card c4">
+    <h2>Tempos de execução</h2>
+    <table>
+      <thead><tr><th>Seção</th><th class="r">exec.</th><th class="r">média</th><th class="r">pior</th></tr></thead>
+      <tbody id="sections"><tr><td colspan="4" class="empty" style="font-family:var(--sans)">Use anx.scope() no robô.</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="card c12">
+    <div class="toolbar"><h2>Métricas <span style="text-transform:none;letter-spacing:0;font-weight:400">· clique para pôr no gráfico (até 4)</span></h2></div>
+    <div id="metrics"><div class="empty">As métricas de anx.value() aparecem aqui.</div></div>
+  </section>
+
+  <section class="card c12">
+    <h2>Console</h2>
+    <div id="console"></div>
+    <form class="send" id="sendForm">
+      <input id="sendIn" placeholder="enviar linha para o stdin do hub (ex.: ANX HELLO)" autocomplete="off">
+      <button type="submit" id="bSend" disabled>Enviar</button>
+    </form>
+  </section>
+</main>
+
+<script>
+"use strict";
+// ============================================================================
+// Protocolo Pybricks (Bluetooth e USB)
+// ============================================================================
+const PB_SERVICE = "c5f50001-8280-46da-89f4-6d8051e4aeef";
+const PB_CMD_EVT = "c5f50002-8280-46da-89f4-6d8051e4aeef";
+const PB_CAPS    = "c5f50003-8280-46da-89f4-6d8051e4aeef";
+const CMD_STOP = 0, CMD_START = 1, CMD_STDIN = 6;
+const EVT_STATUS = 0, EVT_STDOUT = 1;
+const FLAG_RUNNING = 1 << 6;
+const LEGO_VID = 0x0694;
+const USB_PIDS = [0x0009, 0x000d, 0x0010]; // SPIKE Prime, SPIKE Essential, Robot Inventor
+const BANDWIDTH = { ble: 4000, usb: 16000 };
+
+class Transport {
+  constructor() { this.maxWrite = 20; this.slots = 0; this.name = "hub"; this.fw = "—"; this.onEvent = () => {}; this.onClose = () => {}; this._q = Promise.resolve(); }
+  // serializa as escritas (o GATT não aceita duas ao mesmo tempo)
+  command(bytes) { const p = this._q.then(() => this._command(Uint8Array.from(bytes))); this._q = p.catch(() => {}); return p; }
+  async writeStdin(text) {
+    const data = new TextEncoder().encode(text);
+    const n = Math.max(1, this.maxWrite - 1);
+    for (let i = 0; i < data.length; i += n) await this.command([CMD_STDIN, ...data.subarray(i, i + n)]);
+  }
+}
+
+class BleTransport extends Transport {
+  constructor() { super(); this.kind = "ble"; }
+  async connect() {
+    this.device = await navigator.bluetooth.requestDevice({ filters: [{ services: [PB_SERVICE] }], optionalServices: [0x180a] });
+    this.device.addEventListener("gattserverdisconnected", () => this.onClose());
+    const server = await this.device.gatt.connect();
+    this.name = this.device.name || "hub";
+    try {
+      const di = await server.getPrimaryService(0x180a);
+      this.fw = new TextDecoder().decode(await (await di.getCharacteristic(0x2a26)).readValue());
+    } catch (e) {}
+    const svc = await server.getPrimaryService(PB_SERVICE);
+    this.chr = await svc.getCharacteristic(PB_CMD_EVT);
+    try {
+      const caps = await (await svc.getCharacteristic(PB_CAPS)).readValue();
+      this.maxWrite = caps.getUint16(0, true);
+      if (caps.byteLength >= 11) this.slots = caps.getUint8(10);
+    } catch (e) {}
+    this.chr.addEventListener("characteristicvaluechanged", (e) => {
+      const v = e.target.value; this.onEvent(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+    });
+    await this.chr.startNotifications();
+  }
+  _command(bytes) { return this.chr.writeValueWithResponse(bytes); }
+  async disconnect() { if (this.device && this.device.gatt.connected) this.device.gatt.disconnect(); }
+}
+
+class UsbTransport extends Transport {
+  constructor() { super(); this.kind = "usb"; this._pending = null; this._alive = false; }
+  async connect() {
+    this.dev = await navigator.usb.requestDevice({ filters: USB_PIDS.map((p) => ({ vendorId: LEGO_VID, productId: p })) });
+    await this.dev.open();
+    if (!this.dev.configuration) await this.dev.selectConfiguration(1);
+    // interface Pybricks: a que tem endpoints bulk de entrada e saída
+    let intf = null;
+    for (const i of this.dev.configuration.interfaces) {
+      const eps = i.alternate.endpoints;
+      if (eps.some((e) => e.direction === "in") && eps.some((e) => e.direction === "out")) { intf = i; break; }
+    }
+    if (!intf) throw new Error("Interface Pybricks não encontrada. O firmware tem USB habilitado?");
+    await this.dev.claimInterface(intf.interfaceNumber);
+    this.ifn = intf.interfaceNumber;
+    const eps = intf.alternate.endpoints;
+    this.epIn = eps.find((e) => e.direction === "in");
+    this.epOut = eps.find((e) => e.direction === "out");
+    this.maxWrite = this.epOut.packetSize - 1; // 1 byte para o tipo de mensagem USB
+    const dec = new TextDecoder();
+    const ctrl = async (req, value) => {
+      const r = await this.dev.controlTransferIn({ requestType: "class", recipient: "interface", request: req, value, index: this.ifn }, 20);
+      return r.data;
+    };
+    try { this.name = dec.decode(await ctrl(1, 0x2a00)) || this.dev.productName; } catch (e) { this.name = this.dev.productName || "hub"; }
+    try { this.fw = dec.decode(await ctrl(1, 0x2a26)); } catch (e) {}
+    try { const caps = await ctrl(2, 0x0003); if (caps.byteLength >= 11) this.slots = caps.getUint8(10); } catch (e) {}
+    this._alive = true;
+    this._readLoop();
+    this._onDisc = (e) => { if (e.device === this.dev) { this._alive = false; this.onClose(); } };
+    navigator.usb.addEventListener("disconnect", this._onDisc);
+    await this._send([1, 1]); // SUBSCRIBE aos eventos
+  }
+  async _readLoop() {
+    while (this._alive) {
+      let r;
+      try { r = await this.dev.transferIn(this.epIn.endpointNumber, this.epIn.packetSize); }
+      catch (e) { if (this._alive) { this._alive = false; this.onClose(); } return; }
+      if (!r.data || r.data.byteLength === 0) continue;
+      const m = new Uint8Array(r.data.buffer, r.data.byteOffset, r.data.byteLength);
+      if (m[0] === 1 && this._pending) { const p = this._pending; this._pending = null; p(m.subarray(1)); }
+      else if (m[0] === 2) this.onEvent(m.subarray(1));
+    }
+  }
+  async _send(bytes) {
+    const reply = new Promise((res, rej) => { this._pending = res; setTimeout(() => rej(new Error("hub não respondeu")), 2000); });
+    await this.dev.transferOut(this.epOut.endpointNumber, Uint8Array.from(bytes));
+    const r = await reply;
+    if (r.length >= 4 && (r[0] | r[1] << 8 | r[2] << 16 | r[3] << 24) !== 0) throw new Error("erro do hub " + r[0]);
+  }
+  _command(bytes) { return this._send([2, ...bytes]); }
+  async disconnect() {
+    this._alive = false;
+    try { await this._send([1, 0]); } catch (e) {}
+    try { await this.dev.releaseInterface(this.ifn); await this.dev.close(); } catch (e) {}
+    navigator.usb.removeEventListener("disconnect", this._onDisc);
+    this.onClose();
+  }
+}
+
+// ============================================================================
+// Protocolo Anatix v1
+// ============================================================================
+function parseLine(line) {
+  line = line.replace(/\r$/, "");
+  const i = line.indexOf("$ANX,");
+  if (i < 0) return { kind: "console", text: line };
+  const j = line.lastIndexOf("*");
+  if (j < i || line.length < j + 3) return { kind: "invalid" };
+  const body = line.slice(i + 1, j);
+  let ck = 0;
+  for (const b of new TextEncoder().encode(body)) ck ^= b;
+  if (ck !== parseInt(line.slice(j + 1, j + 3), 16)) return { kind: "invalid" };
+  const parts = body.split(",");
+  const type = parts[1];
+  const ms = Number(parts[2]);
+  const fields = type === "M" ? [parts.slice(3).join(",")] : parts.slice(3);
+  return { kind: "frame", type, ms, fields };
+}
+
+// ============================================================================
+// Estado do painel
+// ============================================================================
+const $ = (id) => document.getElementById(id);
+const COLORS = ["--s1", "--s2", "--s3", "--s4"];
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const MAX_POINTS = 6000;
+
+let tr = null, running = false, lastFrameAt = 0, pingTimer = null, paused = false;
+let stdoutBuf = "", frames = 0, invalid = 0, hello = null;
+let metrics = new Map();       // nome -> {pts:[[ms,v]], last, el, spark}
+let selected = [];             // nomes no gráfico
+let loopHist = [], loopLast = null;
+let sections = new Map(), states = new Map(), events = [];
+let csvRows = [];
+let robotNow = 0;
+
+function log(text, cls) {
+  const c = $("console");
+  const atBottom = c.scrollTop + c.clientHeight >= c.scrollHeight - 4;
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.textContent = text;
+  c.appendChild(d);
+  while (c.childNodes.length > 500) c.removeChild(c.firstChild);
+  if (atBottom) c.scrollTop = c.scrollHeight;
+}
+
+function setStatus() {
+  const s = $("status");
+  const telemetry = Date.now() - lastFrameAt < 2500;
+  if (!tr) { s.textContent = "desconectado"; s.className = "pill"; }
+  else if (telemetry) { s.textContent = "telemetria ao vivo"; s.className = "pill on"; }
+  else if (running) { s.textContent = "aguardando anatix"; s.className = "pill wait"; }
+  else { s.textContent = "conectado · programa parado"; s.className = "pill wait"; }
+  const on = !!tr;
+  $("bOff").disabled = !on; $("bRun").disabled = !on || running; $("bStop").disabled = !on || !running;
+  $("bReset").disabled = !telemetry; $("bSend").disabled = !on || !running;
+  $("bBle").disabled = on; $("bUsb").disabled = on;
+}
+
+function resetData() {
+  metrics.clear(); selected = []; loopHist = []; loopLast = null; sections.clear(); states.clear(); events = [];
+  $("metrics").innerHTML = '<div class="empty">As métricas de anx.value() aparecem aqui.</div>';
+  renderLists();
+}
+
+// ---- recepção --------------------------------------------------------------
+function onEvent(data) {
+  if (data[0] === EVT_STATUS && data.length >= 5) {
+    const flags = data[1] | data[2] << 8 | data[3] << 16 | data[4] << 24;
+    const was = running;
+    running = !!(flags & FLAG_RUNNING);
+    tr.selectedSlot = data.length >= 7 ? data[6] : 0;
+    $("iProg").textContent = running ? "rodando" : "parado";
+    if (running && !was) { log("programa iniciado", "sys"); ping(); }
+    if (!running && was) log("programa parado", "sys");
+    setStatus();
+  } else if (data[0] === EVT_STDOUT) {
+    stdoutBuf += new TextDecoder().decode(data.subarray(1));
+    let k;
+    while ((k = stdoutBuf.indexOf("\n")) >= 0) {
+      handleLine(stdoutBuf.slice(0, k));
+      stdoutBuf = stdoutBuf.slice(k + 1);
+    }
+    if (stdoutBuf.length > 4096) stdoutBuf = "";
+  }
+}
+
+function handleLine(line) {
+  const f = parseLine(line);
+  if (f.kind === "console") { if (f.text.trim()) log(f.text); return; }
+  if (f.kind === "invalid") { invalid++; return; }
+  frames++; lastFrameAt = Date.now(); robotNow = f.ms;
+  const fl = f.fields;
+  switch (f.type) {
+    case "H":
+      if (fl.length >= 4) {
+        hello = { robo: fl[1], placa: fl[2], periodo: fl[3] };
+        $("iRobo").textContent = fl[1]; $("iPlaca").textContent = fl[2];
+        $("rate").value = ["100", "250", "500", "1000"].includes(fl[3]) ? fl[3] : $("rate").value;
+        log("anatix conectado: " + fl[1] + " (" + fl[2] + ", protocolo v" + fl[0] + ")", "sys");
+        if (metrics.size && metrics.values().next().value.pts.at(-1)?.[0] > f.ms) resetData(); // robô reiniciou
+        tr.writeStdin("ANX BW " + BANDWIDTH[tr.kind] + "\n").catch(() => {});
+      }
+      break;
+    case "V": {
+      const v = fl[1] === "nan" ? NaN : fl[1] === "inf" ? Infinity : fl[1] === "-inf" ? -Infinity : Number(fl[1]);
+      addMetric(fl[0], f.ms, v);
+      csv(f.ms, "V", fl[0], fl[1]);
+      break;
+    }
+    case "E": events.unshift([f.ms, fl[0], fl[1]]); events.length = Math.min(events.length, 200); csv(f.ms, "E", fl[0], fl[1]); break;
+    case "S": states.set(fl[0], [fl[1], f.ms]); csv(f.ms, "S", fl[0], fl[1]); break;
+    case "T": sections.set(fl[0], fl.slice(1, 4).map(Number)); break;
+    case "L": {
+      const [hz, avg, mx, ram, drops] = fl.map(Number);
+      loopLast = { hz, avg, mx, ram, drops };
+      loopHist.push(hz); if (loopHist.length > 120) loopHist.shift();
+      csv(f.ms, "L", "loop_hz", hz);
+      break;
+    }
+    case "M": log("» " + fl[0], "anx"); csv(f.ms, "M", "log", fl[0]); break;
+  }
+}
+
+function csv(ms, t, name, v) { if (csvRows.length < 300000) csvRows.push([(Date.now() / 1000).toFixed(3), ms, t, name, v]); }
+
+function addMetric(name, ms, v) {
+  let m = metrics.get(name);
+  if (!m) {
+    if (!metrics.size) $("metrics").innerHTML = "";
+    const el = document.createElement("div");
+    el.className = "metric";
+    el.innerHTML = '<div class="n"></div><div class="v">—</div><canvas></canvas>';
+    el.querySelector(".n").textContent = name;
+    el.addEventListener("click", () => toggleSelect(name));
+    // ordem alfabética
+    const after = [...metrics.keys()].sort().find((k) => k > name);
+    $("metrics").insertBefore(el, after ? metrics.get(after).el : null);
+    m = { pts: [], last: v, el, spark: el.querySelector("canvas"), valEl: el.querySelector(".v") };
+    metrics.set(name, m);
+    if (selected.length < 2 && !name.startsWith("hub_")) toggleSelect(name);
+  }
+  if (!paused) { m.pts.push([ms, v]); if (m.pts.length > MAX_POINTS) m.pts.splice(0, m.pts.length - MAX_POINTS); }
+  m.last = v;
+}
+
+function toggleSelect(name) {
+  const i = selected.indexOf(name);
+  if (i >= 0) selected.splice(i, 1);
+  else { if (selected.length >= 4) selected.shift(); selected.push(name); }
+  for (const [k, m] of metrics) {
+    const idx = selected.indexOf(k);
+    m.el.classList.toggle("sel", idx >= 0);
+    m.el.style.setProperty("--c", idx >= 0 ? css(COLORS[idx]) : "");
+  }
+  $("legend").innerHTML = selected.map((n, i) => `<span><i style="background:${css(COLORS[i])}"></i>${esc(n)}</span>`).join("");
+}
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (v) => !isFinite(v) ? String(v) : Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(Number.isInteger(v) ? 0 : 3);
+const msTxt = (us) => (us / 1000).toFixed(us < 10000 ? 2 : 1) + " ms";
+
+// ---- desenho ---------------------------------------------------------------
+function fitCanvas(c) {
+  const r = c.getBoundingClientRect(), d = devicePixelRatio || 1;
+  const w = Math.round(r.width * d), h = Math.round(r.height * d);
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const ctx = c.getContext("2d"); ctx.setTransform(d, 0, 0, d, 0, 0);
+  return [ctx, r.width, r.height];
+}
+
+function spark(c, vals, color) {
+  const [ctx, w, h] = fitCanvas(c);
+  ctx.clearRect(0, 0, w, h);
+  const v = vals.filter(isFinite);
+  if (v.length < 2) return;
+  let lo = Math.min(...v), hi = Math.max(...v); if (hi === lo) { hi += 1; lo -= 1; }
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+  vals.forEach((y, i) => { if (!isFinite(y)) return; const X = i / (vals.length - 1) * w, Y = h - 2 - (y - lo) / (hi - lo) * (h - 4); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+  ctx.stroke();
+}
+
+function drawChart() {
+  const [ctx, w, h] = fitCanvas($("chart"));
+  ctx.clearRect(0, 0, w, h);
+  const win = Number($("win").value);
+  const t1 = robotNow, t0 = t1 - win;
+  const padL = 52, padR = 10, padT = 8, padB = 22;
+  const series = selected.map((n) => metrics.get(n)).filter(Boolean);
+  let lo = Infinity, hi = -Infinity;
+  for (const m of series) for (const [t, v] of m.pts) if (t >= t0 && isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  ctx.font = "11px " + css("--mono"); ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--line"); ctx.lineWidth = 1;
+  if (!isFinite(lo)) { ctx.fillText(selected.length ? "sem dados na janela" : "selecione métricas abaixo", padL, h / 2); return; }
+  if (hi === lo) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * 0.08; hi += pad; lo -= pad;
+  const X = (t) => padL + (t - t0) / win * (w - padL - padR);
+  const Y = (v) => padT + (1 - (v - lo) / (hi - lo)) * (h - padT - padB);
+  ctx.textAlign = "right";
+  for (let k = 0; k <= 4; k++) {
+    const v = lo + (hi - lo) * k / 4, y = Y(v);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillText(fmt(v), padL - 6, y + 4);
+  }
+  ctx.textAlign = "center";
+  const step = win <= 10000 ? 2000 : win <= 30000 ? 5000 : win <= 60000 ? 10000 : 20000;
+  for (let t = Math.ceil(t0 / step) * step; t <= t1; t += step) ctx.fillText((t / 1000).toFixed(0) + "s", X(t), h - 6);
+  selected.forEach((name, i) => {
+    const m = metrics.get(name);
+    if (!m) return;
+    ctx.strokeStyle = css(COLORS[i]);
+    ctx.lineWidth = 1.8; ctx.beginPath();
+    let started = false;
+    for (const [t, v] of m.pts) {
+      if (t < t0 || !isFinite(v)) { started = false; continue; }
+      started ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v)); started = true;
+    }
+    ctx.stroke();
+  });
+}
+
+function renderLists() {
+  $("iFrames").textContent = frames + (invalid ? "  (" + invalid + " inválidos)" : "");
+  if (loopLast) {
+    $("lHz").innerHTML = loopLast.hz + "<small>loops/s</small>";
+    $("lAvg").textContent = msTxt(loopLast.avg); $("lMax").textContent = msTxt(loopLast.mx);
+    $("lRam").textContent = loopLast.ram < 0 ? "n/d" : (loopLast.ram / 1024).toFixed(1) + " KB";
+    $("lDrops").textContent = loopLast.drops;
+    $("lDrops").style.color = loopLast.drops ? css("--warn") : "";
+    spark($("lSpark"), loopHist, css("--accent"));
+  } else { $("lHz").innerHTML = "—<small>loops/s</small>"; }
+
+  if (sections.size) {
+    const worst = Math.max(...[...sections.values()].map((s) => s[2]), 1);
+    $("sections").innerHTML = [...sections].sort((a, b) => b[1][1] - a[1][1]).map(([n, [c, avg, mx]]) =>
+      `<tr><td>${esc(n)}<div class="bar"><i style="width:${(mx / worst * 100).toFixed(0)}%"></i></div></td><td class="r">${c}</td><td class="r">${msTxt(avg)}</td><td class="r">${msTxt(mx)}</td></tr>`).join("");
+  }
+  $("states").innerHTML = states.size ? [...states].map(([m, [s, t]]) =>
+    `<div class="state"><span>${esc(m)}</span><b>${esc(s)}</b><span class="t" style="text-align:right">${((robotNow - t) / 1000).toFixed(1)} s</span></div>`).join("")
+    : '<div class="empty">Nenhum estado ainda.</div>';
+  $("events").innerHTML = events.length ? events.slice(0, 60).map(([t, n, d]) =>
+    `<div><span class="t">${(t / 1000).toFixed(2)}s</span><span>${esc(n)}${d !== "0" ? " · " + esc(d) : ""}</span></div>`).join("")
+    : '<div class="empty">Nenhum evento ainda.</div>';
+  for (const [, m] of metrics) {
+    m.valEl.textContent = fmt(m.last);
+    spark(m.spark, m.pts.slice(-150).map((p) => p[1]), m.el.classList.contains("sel") ? m.el.style.getPropertyValue("--c") : css("--muted"));
+  }
+}
+
+let lastList = 0;
+function frame(now) {
+  if (!paused) drawChart();
+  if (now - lastList > 250) { lastList = now; renderLists(); setStatus(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---- conexão ---------------------------------------------------------------
+async function ping() {
+  if (tr && running) { try { await tr.writeStdin("ANX PING\n"); } catch (e) {} }
+}
+
+async function connect(kind) {
+  if (kind === "ble" && !navigator.bluetooth) return warn("Este navegador não tem Web Bluetooth. Use Chrome ou Edge no computador (abra a página por http://localhost ou como arquivo).");
+  if (kind === "usb" && !navigator.usb) return warn("Este navegador não tem WebUSB. Use Chrome ou Edge no computador.");
+  const t = kind === "ble" ? new BleTransport() : new UsbTransport();
+  t.onEvent = onEvent;
+  t.onClose = () => {
+    if (tr !== t) return;
+    tr = null; running = false; clearInterval(pingTimer);
+    log("hub desconectado", "sys"); setStatus();
+  };
+  try {
+    log(kind === "ble" ? "procurando hub por Bluetooth…" : "procurando hub no USB…", "sys");
+    await t.connect();
+  } catch (e) {
+    if (e.name !== "NotFoundError") warn("Não foi possível conectar: " + e.message + (kind === "usb" ? " — o cabo USB exige firmware Pybricks com USB habilitado (SPIKE Prime/Essential, Robot Inventor)." : ""));
+    log("conexão cancelada", "sys"); return;
+  }
+  $("warn").style.display = "none";
+  tr = t; stdoutBuf = "";
+  $("iHub").textContent = t.name; $("iConn").textContent = kind === "ble" ? "Bluetooth" : "Cabo USB"; $("iFw").textContent = t.fw;
+  log("conectado a " + t.name + " por " + (kind === "ble" ? "Bluetooth" : "USB") + ". Inicie o programa no hub ou em ▶ Iniciar.", "sys");
+  pingTimer = setInterval(ping, 500);
+  setStatus();
+}
+
+function warn(msg) { const w = $("warn"); w.textContent = msg; w.style.display = "block"; }
+
+$("bBle").onclick = () => connect("ble");
+$("bUsb").onclick = () => connect("usb");
+$("bOff").onclick = async () => { if (!tr) return; try { if (running) await tr.writeStdin("ANX STOP\n"); } catch (e) {} await tr.disconnect(); };
+$("bRun").onclick = () => tr && tr.command(tr.slots ? [CMD_START, tr.selectedSlot || 0] : [CMD_START]).catch((e) => log("não iniciou: " + e.message, "sys"));
+$("bStop").onclick = () => tr && tr.command([CMD_STOP]).catch(() => {});
+$("rate").onchange = () => tr && running && tr.writeStdin("ANX RATE " + $("rate").value + "\n");
+$("bReset").onclick = () => { if (tr && running) tr.writeStdin("ANX RESET\n"); sections.clear(); loopHist = []; };
+$("bPause").onclick = () => { paused = !paused; $("bPause").textContent = paused ? "Continuar" : "Pausar"; };
+$("sendForm").onsubmit = (e) => { e.preventDefault(); const v = $("sendIn").value; if (!v || !tr) return; tr.writeStdin(v + "\n"); log("← " + v, "sys"); $("sendIn").value = ""; };
+$("bCsv").onclick = () => {
+  const rows = [["pc_s", "robo_ms", "tipo", "nome", "valor"], ...csvRows]
+    .map((r) => r.map((x) => /[",\n]/.test(String(x)) ? '"' + String(x).replace(/"/g, '""') + '"' : x).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([rows], { type: "text/csv" }));
+  a.download = "anatix_" + (hello ? hello.robo : "robo") + "_" + new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-") + ".csv";
+  a.click();
+};
+setStatus();
+</script>
+</body>
+</html>
